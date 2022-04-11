@@ -1,16 +1,3 @@
-#include <ostream>
-
-extern "C" {
-#include <incbin.h>
-}
-
-#include <cxxopts.hpp>
-#include <string>
-#include <iostream>
-#include <algorithm>
-#include <cstdlib>
-
-#include <ghc/filesystem.hpp>
 using namespace ghc; // this namespace has the filesystem namespace which is
                      // "experimental" in earlier versions of clang and gcc
                      // To "simulate" usage of this api, I'm going to use the
@@ -51,7 +38,7 @@ int main(int argc, char** argv) {
         ("h,help", "Print usage")
         ("name", "The name of the command or subsystem", cxxopts::value<std::string>()->default_value("UnReplaced"))
         ;
-    options.parse_positional({"first", "second", "name"});
+    options.parse_positional({"name"});
     options.positional_help("name").show_positional_help();
     auto parsedOps = options.parse(argc, argv);
 
