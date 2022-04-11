@@ -36,14 +36,28 @@ INCTXT(subsystemTemplateHFile,   "../templates/subsystem/templateSubsystem.h");
  */
 std::string findAndReplace(const char* data, unsigned int size, const char* toFind, const char* toReplace);
 
+/*
+ * Dump an std::string to a file
+ * @param pathToFile the path to the file
+ * @param data the data to dump to the file
+ */
+void dumpStringToFile(filesystem::path pathToFile, const std::string& data);
+
 int main(int argc, char** argv) {
     auto options = cxxopts::Options("FRC C++ File Generator", "Generate commands and subsystems from your frc project from the cli!");
     options.add_options("FRC C++ File Generator")
         ("c,command", "Generate a command.", cxxopts::value<bool>()->default_value("false"))
         ("s,susbystem", "Generate a susbsytem.", cxxopts::value<bool>()->default_value("false"))
-        ("n,name", "The name of the command or subsystem", cxxopts::value<std::string>()->default_value("MyCommand"))
+        ("h,help", "Print usage")
+        ("name", "The name of the command or subsystem", cxxopts::value<std::string>()->default_value("MyCommand"))
         ;
+    options.parse_positional("name");
     auto parsedOps = options.parse(argc, argv);
+
+    if(parsedOps.count("help")) {
+        std::cout << options.help() << std::endl;
+        exit(0);
+    }
 
     if(!parsedOps.count("c") && !parsedOps.count("s")) {
         std::cout << "Command or Subsystem was not specified. Not doing anything!" << std::endl;
@@ -51,8 +65,8 @@ int main(int argc, char** argv) {
     }
 
     // construct filepaths
-    auto cppFilePath = filesystem::path("src/main/cpp/" + parsedOps["n"].as<std::string>() + ".cpp");
-    auto hFilePath = filesystem::path("src/main/include/" + parsedOps["n"].as<std::string>() + ".h");
+    auto cppFilePath = filesystem::path("src/main/cpp/" + parsedOps["name"].as<std::string>() + ".cpp");
+    auto hFilePath = filesystem::path("src/main/include/" + parsedOps["name"].as<std::string>() + ".h");
 
     if(!filesystem::exists(filesystem::absolute(cppFilePath).parent_path())) {
         std::cout << cppFilePath.parent_path() << " does not exist!" << std::endl;
@@ -86,22 +100,31 @@ int main(int argc, char** argv) {
             gsubsystemTemplateHFileData, gsubsystemTemplateHFileSize,
             "ReplaceMeSubsystem2", hFilePath.stem().c_str());
 
+    } else if (parsedOps["c"].as<bool>()) {
+      cppReplaced = findAndReplace(
+          gcommandTemplateCppFileData, gcommandTemplateCppFileSize,
+          "ReplaceMeCommand2", cppFilePath.stem().c_str());
+
+      hReplaced = findAndReplace(
+          gcommandTemplateHFileData, gcommandTemplateHFileSize,
+          "ReplaceMeCommand2", hFilePath.stem().c_str());
     }
 
     // dump to file
-    auto cppFile = filesystem::ofstream(cppFilePath);
-    cppFile << cppReplaced;
-    cppFile.close();
-
-    auto hFile = filesystem::ofstream(hFilePath);
-    hFile << hReplaced;
-    hFile.close();
+    dumpStringToFile(cppFilePath, cppReplaced);
+    dumpStringToFile(hFilePath, hReplaced);
 
     return 0;
 }
 
 std::string findAndReplace(const char *data, unsigned int size, const char *toFind,
                            const char *toReplace) {
-    std::string str(data, size);
+    std::string str(data, size - 1);
     return std::regex_replace(str, std::regex(toFind), toReplace);
+}
+
+void dumpStringToFile(filesystem::path pathToFile, const std::string &data) {
+    auto file = filesystem::ofstream(pathToFile);
+    file << data;
+    file.close();
 }
