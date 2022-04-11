@@ -30,6 +30,11 @@ std::string findAndReplace(const char* data, unsigned int size, const char* toFi
  */
 void dumpStringToFile(filesystem::path pathToFile, const std::string& data);
 
+/*
+ * Changes CWD to project root (the directory with the build.gradle)
+ */
+void gotoProjectRoot();
+
 int main(int argc, char** argv) {
     auto options = cxxopts::Options("FRC C++ File Generator", "Generate commands and subsystems from your frc project from the cli!");
     options.add_options("FRC C++ File Generator")
@@ -47,6 +52,9 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
+    gotoProjectRoot();
+    system("pwd");
+
     if(!parsedOps.count("c") && !parsedOps.count("s")) {
         std::cout << "Command or Subsystem was not specified. Not doing anything!" << std::endl;
         exit(1);
@@ -55,16 +63,6 @@ int main(int argc, char** argv) {
     // construct filepaths
     auto cppFilePath = filesystem::path("src/main/cpp/" + parsedOps["name"].as<std::string>() + ".cpp");
     auto hFilePath = filesystem::path("src/main/include/" + parsedOps["name"].as<std::string>() + ".h");
-
-    if(!filesystem::exists(filesystem::absolute(cppFilePath).parent_path())) {
-        std::cout << cppFilePath.parent_path() << " does not exist!" << std::endl;
-        exit(1);
-    }
-
-    if(!filesystem::exists(filesystem::absolute(hFilePath).parent_path())) {
-        std::cout << hFilePath.parent_path() << " does not exist!" << std::endl;
-        exit(1);
-    }
 
     if(filesystem::exists(cppFilePath)) {
         std::cout << cppFilePath << " already exists! I will not overwrite!" << std::endl;
@@ -98,6 +96,8 @@ int main(int argc, char** argv) {
           "ReplaceMeCommand2", hFilePath.stem().c_str());
     }
 
+    std::cout << "cpp file path: " << cppFilePath << std::endl;
+
     // dump to file
     dumpStringToFile(cppFilePath, cppReplaced);
     dumpStringToFile(hFilePath, hReplaced);
@@ -112,7 +112,20 @@ std::string findAndReplace(const char *data, unsigned int size, const char *toFi
 }
 
 void dumpStringToFile(filesystem::path pathToFile, const std::string &data) {
+    filesystem::create_directory(pathToFile.parent_path());
     auto file = filesystem::ofstream(pathToFile);
     file << data;
     file.close();
+}
+
+void gotoProjectRoot() {
+    auto buildDotGradle = filesystem::path("build.gradle");
+    if(!filesystem::exists(buildDotGradle)) {
+        if(filesystem::current_path() == filesystem::current_path().root_path()) {
+            std::cout << "You are not in a project!!!" << std::endl;
+            exit(1);
+        }
+        filesystem::current_path(filesystem::current_path().parent_path());
+        gotoProjectRoot();
+    }
 }
