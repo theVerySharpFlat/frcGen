@@ -1,3 +1,4 @@
+#include <exception>
 using namespace ghc; // this namespace has the filesystem namespace which is
                      // "experimental" in earlier versions of clang and gcc
                      // To "simulate" usage of this api, I'm going to use the
@@ -112,7 +113,13 @@ std::string findAndReplace(const char *data, unsigned int size, const char *toFi
 }
 
 void dumpStringToFile(filesystem::path pathToFile, const std::string &data) {
-    filesystem::create_directory(pathToFile.parent_path());
+    try{
+        filesystem::create_directories(pathToFile.parent_path());
+    } catch(std::exception e) {
+        std::cout << "error: " << e.what() << std::endl;
+        exit(1);
+    }
+
     auto file = filesystem::ofstream(pathToFile);
     file << data;
     file.close();
