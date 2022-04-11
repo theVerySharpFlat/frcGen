@@ -49,9 +49,10 @@ int main(int argc, char** argv) {
         ("c,command", "Generate a command.", cxxopts::value<bool>()->default_value("false"))
         ("s,susbystem", "Generate a susbsytem.", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
-        ("name", "The name of the command or subsystem", cxxopts::value<std::string>()->default_value("MyCommand"))
+        ("n,name", "The name of the command or subsystem", cxxopts::value<std::string>()->default_value("MyCommand"))
         ;
-    options.parse_positional("name");
+    options.parse_positional({"first", "second", "name"});
+    options.positional_help("name").show_positional_help();
     auto parsedOps = options.parse(argc, argv);
 
     if(parsedOps.count("help")) {
