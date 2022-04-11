@@ -36,6 +36,13 @@ INCTXT(subsystemTemplateHFile,   "../templates/subsystem/templateSubsystem.h");
  */
 std::string findAndReplace(const char* data, unsigned int size, const char* toFind, const char* toReplace);
 
+/*
+ * Dump an std::string to a file
+ * @param pathToFile the path to the file
+ * @param data the data to dump to the file
+ */
+void dumpStringToFile(filesystem::path pathToFile, const std::string& data);
+
 int main(int argc, char** argv) {
     auto options = cxxopts::Options("FRC C++ File Generator", "Generate commands and subsystems from your frc project from the cli!");
     options.add_options("FRC C++ File Generator")
@@ -86,22 +93,31 @@ int main(int argc, char** argv) {
             gsubsystemTemplateHFileData, gsubsystemTemplateHFileSize,
             "ReplaceMeSubsystem2", hFilePath.stem().c_str());
 
+    } else if (parsedOps["c"].as<bool>()) {
+      cppReplaced = findAndReplace(
+          gcommandTemplateCppFileData, gcommandTemplateCppFileSize,
+          "ReplaceMeCommand2", cppFilePath.stem().c_str());
+
+      hReplaced = findAndReplace(
+          gcommandTemplateHFileData, gcommandTemplateHFileSize,
+          "ReplaceMeCommand2", hFilePath.stem().c_str());
     }
 
     // dump to file
-    auto cppFile = filesystem::ofstream(cppFilePath);
-    cppFile << cppReplaced;
-    cppFile.close();
-
-    auto hFile = filesystem::ofstream(hFilePath);
-    hFile << hReplaced;
-    hFile.close();
+    dumpStringToFile(cppFilePath, cppReplaced);
+    dumpStringToFile(hFilePath, hReplaced);
 
     return 0;
 }
 
 std::string findAndReplace(const char *data, unsigned int size, const char *toFind,
                            const char *toReplace) {
-    std::string str(data, size);
+    std::string str(data, size - 1);
     return std::regex_replace(str, std::regex(toFind), toReplace);
+}
+
+void dumpStringToFile(filesystem::path pathToFile, const std::string &data) {
+    auto file = filesystem::ofstream(pathToFile);
+    file << data;
+    file.close();
 }
