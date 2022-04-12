@@ -12,6 +12,7 @@ INCTXT(commandTemplateCppFile,   "../templates/command/templateCommand.cpp");
 INCTXT(commandTemplateHFile,     "../templates/command/templateCommand.h");
 INCTXT(subsystemTemplateCppFile, "../templates/subsystem/templateSubsystem.cpp");
 INCTXT(subsystemTemplateHFile,   "../templates/subsystem/templateSubsystem.h");
+INCTXT(dotFrcGenDotJsonFile, "../templates/.frcGen.json");
 
 /* Utility functions */
 
@@ -42,6 +43,7 @@ int main(int argc, char** argv) {
         ("c,command", "Generate a command.", cxxopts::value<bool>()->default_value("false"))
         ("s,susbystem", "Generate a susbsytem.", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
+        ("g,generate-config", "Generate a .frcGen.json file at the project root.")
         ("name", "The name of the command or subsystem", cxxopts::value<std::string>()->default_value("UnReplaced"))
         ;
     options.parse_positional({"name"});
@@ -54,7 +56,15 @@ int main(int argc, char** argv) {
     }
 
     gotoProjectRoot();
-    system("pwd");
+
+    if(parsedOps.count("g")) {
+        dumpStringToFile(
+            ".frcGen.json", 
+            std::string(gdotFrcGenDotJsonFileData, gdotFrcGenDotJsonFileSize-1)
+            );
+        exit(1);
+    }
+
 
     if(!parsedOps.count("c") && !parsedOps.count("s")) {
         std::cout << "Command or Subsystem was not specified. Not doing anything!" << std::endl;
@@ -127,7 +137,8 @@ void dumpStringToFile(filesystem::path pathToFile, const std::string &data) {
 
 void gotoProjectRoot() {
     auto buildDotGradle = filesystem::path("build.gradle");
-    if(!filesystem::exists(buildDotGradle)) {
+    auto dotFrcGen = filesystem::path(".frcGen.json");
+    if(!(filesystem::exists(dotFrcGen) || filesystem::exists(buildDotGradle))) {
         if(filesystem::current_path() == filesystem::current_path().root_path()) {
             std::cout << "You are not in a project!!!" << std::endl;
             exit(1);
