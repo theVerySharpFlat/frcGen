@@ -1,3 +1,7 @@
+#include "ghc/filesystem.hpp"
+#include <ostream>
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
 #include <exception>
 using namespace ghc; // this namespace has the filesystem namespace which is
                      // "experimental" in earlier versions of clang and gcc
@@ -57,6 +61,35 @@ int main(int argc, char** argv) {
 
     gotoProjectRoot();
 
+    filesystem::path includeDir = "src/main/include/";
+    filesystem::path srcDir = "src/main/cpp/";
+
+    if(filesystem::exists(filesystem::path(".frcGen.json"))) {
+        auto dotFrcGenDotJson = 
+            filesystem::ifstream(filesystem::path(".frcGen.json"));
+        std::stringstream buffer;
+        buffer << dotFrcGenDotJson.rdbuf();
+        std::string data = buffer.str();
+        dotFrcGenDotJson.close();
+
+        rapidjson::Document document;
+        document.Parse(data.c_str());
+
+        if(document.HasMember("include-directory") && document["include-directory"].IsString()) {
+            includeDir = document["include-directory"].GetString();
+        } else {
+            std::cout << "warning: no include directory specified in .frcGen.json "
+                << "or value is of incorrect type" << std::endl;
+        }
+
+        if(document.HasMember("source-directory") && document["source-directory"].IsString()) {
+            srcDir = document["source-directory"].GetString();
+        } else {
+            std::cout << "warning: no source directory specified in .frcGen.json "
+                << "or value is of incorrect type" << std::endl;
+        }
+    }
+
     if(parsedOps.count("g")) {
         dumpStringToFile(
             ".frcGen.json", 
@@ -72,8 +105,10 @@ int main(int argc, char** argv) {
     }
 
     // construct filepaths
-    auto cppFilePath = filesystem::path("src/main/cpp/" + parsedOps["name"].as<std::string>() + ".cpp");
-    auto hFilePath = filesystem::path("src/main/include/" + parsedOps["name"].as<std::string>() + ".h");
+    auto cppFilePath = 
+        filesystem::path(srcDir / filesystem::path(parsedOps["name"].as<std::string>() + ".cpp"));
+    auto hFilePath = 
+        filesystem::path(includeDir / filesystem::path( parsedOps["name"].as<std::string>() + ".h"));
 
     if(filesystem::exists(cppFilePath)) {
         std::cout << cppFilePath << " already exists! I will not overwrite!" << std::endl;
@@ -107,10 +142,11 @@ int main(int argc, char** argv) {
           "ReplaceMeCommand2", hFilePath.stem().c_str());
     }
 
-    std::cout << "cpp file path: " << cppFilePath << std::endl;
-
     // dump to file
+    std::cout << "dumping source file to " << cppFilePath << std::endl;
     dumpStringToFile(cppFilePath, cppReplaced);
+    
+    std::cout << "dumping header file to " << hFilePath << std::endl;
     dumpStringToFile(hFilePath, hReplaced);
 
     return 0;
