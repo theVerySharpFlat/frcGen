@@ -1,0 +1,4 @@
+{
+    "include-directory": "src/main/include",
+    "source-directory": "src/main/cpp"   
+}
